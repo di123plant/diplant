@@ -1,174 +1,147 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { getFirestore, collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
+import { useCart } from '../contexts/CartContext'
 
-const categories = [
-  {
-    id: 1,
-    name: 'Angol nyelv',
-    description: 'Általános és szaknyelvi tankönyvek, munkafüzetek',
-    level: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
-  },
-  {
-    id: 2,
-    name: 'Német nyelv',
-    description: 'Nyelvvizsga felkészítők és társalgási gyakorlatok',
-    level: ['A1', 'A2', 'B1', 'B2', 'C1']
-  },
-  {
-    id: 3,
-    name: 'Francia nyelv',
-    description: 'Modern nyelvkönyvek minden szinten',
-    level: ['A1', 'A2', 'B1', 'B2', 'C1']
-  },
-  {
-    id: 4,
-    name: 'Spanyol nyelv',
-    description: 'Intenzív kurzuskönyvek és gyakorlóanyagok',
-    level: ['A1', 'A2', 'B1', 'B2', 'C1']
-  },
-  {
-    id: 5,
-    name: 'Olasz nyelv',
-    description: 'Kezdőtől a felsőfokig, kultúrával fűszerezve',
-    level: ['A1', 'A2', 'B1', 'B2', 'C1']
-  },
-  {
-    id: 6,
-    name: 'Orosz nyelv',
-    description: 'Komplett nyelvtanulási csomagok',
-    level: ['A1', 'A2', 'B1', 'B2']
-  },
-  {
-    id: 7,
-    name: 'Japán nyelv',
-    description: 'JLPT felkészítők és alapozó tankönyvek',
-    level: ['N5', 'N4', 'N3', 'N2', 'N1']
-  },
-  {
-    id: 8,
-    name: 'Kínai nyelv',
-    description: 'HSK vizsgafelkészítők és gyakorlókönyvek',
-    level: ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4']
-  },
-  {
-    id: 9,
-    name: 'Üzleti nyelv',
-    description: 'Szakmai nyelvkönyvek és kommunikációs készségfejlesztés',
-    level: ['B1', 'B2', 'C1']
-  },
-  {
-    id: 10,
-    name: 'Nyelvvizsga felkészítők',
-    description: 'Célzott felkészülés különböző nyelvvizsgákra',
-    type: ['ECL', 'TELC', 'Cambridge', 'Goethe', 'DELE']
-  },
-  {
-    id: 11,
-    name: 'Gyerekeknek',
-    description: 'Játékos nyelvtanulás kicsiknek',
-    ageGroup: ['3-6 év', '7-10 év', '11-14 év']
-  },
-  {
-    id: 12,
-    name: 'Egyéb nyelvek',
-    description: 'Holland, lengyel, cseh, és további nyelvek',
-    level: ['A1', 'A2', 'B1', 'B2']
+interface Book {
+  id: string
+  cim: string
+  szerzo: string
+  ar: number
+  isbn: string
+  kiado: string
+  kategoria?: string
+  nyelv?: string
+  leiras?: string
+  keszlet?: number
+}
+
+export default function NewArrivals() {
+  const [newArrivals, setNewArrivals] = useState<Book[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { addItem } = useCart()
+
+  useEffect(() => {
+    const fetchNewArrivals = async () => {
+      try {
+        const db = getFirestore()
+        const booksRef = collection(db, 'konyv')
+        const q = query(booksRef, orderBy('created_at', 'desc'), limit(12))
+        const snapshot = await getDocs(q)
+        const books = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Book[]
+        setNewArrivals(books)
+      } catch (error) {
+        console.error('Error fetching new arrivals:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchNewArrivals()
+  }, [])
+
+  const BookCard = ({ book, index }: { book: Book; index: number }) => {
+    const [isAdding, setIsAdding] = useState(false)
+    const [quantity, setQuantity] = useState(1)
+
+    const handleAddToCart = (book: Book) => {
+      setIsAdding(true)
+      for (let i = 0; i < quantity; i++) {
+        addItem({
+          id: Number(book.id),
+          title: book.cim,
+          author: book.szerzo,
+          price: book.ar,
+          cover: undefined
+        })
+      }
+      setQuantity(1) // Reset quantity after adding
+      setTimeout(() => setIsAdding(false), 300)
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          scale: isAdding ? 1.02 : 1
+        }}
+        transition={{ 
+          duration: 0.3,
+          ease: "easeInOut"
+        }}
+        className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-6 border border-[rgba(var(--primary-color),0.1)]"
+      >
+        <div className="relative">
+          <div className="aspect-[3/4] bg-gray-100 rounded-md mb-4">
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              Borító
+            </div>
+          </div>
+          <div className="absolute top-2 left-2">
+            <span className="bg-[rgb(var(--accent-light))] text-[rgb(var(--primary-color))] px-2 py-1 rounded text-sm">
+              Új
+            </span>
+          </div>
+        </div>
+
+        <h3 className="text-lg font-medium text-gray-900">{book.cim}</h3>
+        <p className="mt-1 text-sm text-gray-600">{book.szerzo}</p>
+        <div className="mt-4 flex justify-between items-center">
+          <span className="text-[rgb(var(--primary-color))] font-semibold">
+            {book.ar.toLocaleString('hu-HU')} Ft
+          </span>
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-16 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
+            />
+            <button
+              onClick={() => handleAddToCart(book)}
+              className="px-3 py-1 bg-[rgb(var(--primary-color))] text-white rounded hover:bg-[rgb(var(--secondary-color))] transition-colors text-sm"
+            >
+              Kosárba
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    )
   }
-]
 
-export default function Categories() {
   return (
     <div className="py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Nyelvkönyvek és oktatási anyagok</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Új könyveink</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Válogasson több mint 10,000 nyelvkönyv és oktatási segédanyag közül
+            Fedezze fel legújabb nyelvkönyveinket
           </p>
         </motion.div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category, index) => (
-            <motion.div
-              key={category.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-6 border border-[rgba(var(--primary-color),0.1)]"
-            >
-              <h2 className="text-xl font-semibold text-gray-900 group-hover:text-[rgb(var(--primary-color))] transition-colors">
-                {category.name}
-              </h2>
-              <p className="mt-2 text-gray-600 text-sm">{category.description}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {category.level && category.level.map((level) => (
-                  <span
-                    key={level}
-                    className="text-xs px-2 py-1 bg-[rgba(var(--accent-light),0.2)] text-[rgb(var(--primary-color))] rounded-full"
-                  >
-                    {level}
-                  </span>
-                ))}
-                {category.type && category.type.map((type) => (
-                  <span
-                    key={type}
-                    className="text-xs px-2 py-1 bg-[rgba(var(--accent-light),0.2)] text-[rgb(var(--primary-color))] rounded-full"
-                  >
-                    {type}
-                  </span>
-                ))}
-                {category.ageGroup && category.ageGroup.map((age) => (
-                  <span
-                    key={age}
-                    className="text-xs px-2 py-1 bg-[rgba(var(--accent-light),0.2)] text-[rgb(var(--primary-color))] rounded-full"
-                  >
-                    {age}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-4 flex justify-between items-center">
-                <a
-                  href={`/kategoriak/${encodeURIComponent(category.name.toLowerCase())}`}
-                  className="text-[rgb(var(--primary-color))] hover:text-[rgb(var(--secondary-color))] text-sm font-medium flex items-center"
-                >
-                  Részletek
-                  <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
-                <button className="text-sm text-white bg-[rgb(var(--primary-color))] px-3 py-1 rounded hover:bg-[rgb(var(--secondary-color))] transition-colors">
-                  Böngészés
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-16 bg-[rgba(var(--accent-light),0.1)] rounded-lg p-8 text-center"
-        >
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Nem találja amit keres?</h2>
-          <p className="text-gray-600 mb-6">
-            Szakértő csapatunk szívesen segít a megfelelő tananyag kiválasztásában
-          </p>
-          <a
-            href="/kapcsolat"
-            className="btn-primary inline-flex items-center"
-          >
-            Kapcsolatfelvétel
-            <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </a>
-        </motion.div>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {newArrivals.map((book, index) => (
+              <BookCard key={book.id} book={book} index={index} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
