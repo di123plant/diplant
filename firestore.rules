@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email.matches('.*@diplant.hu$');
+    }
+
+    // Helper function to validate book data
+    function isValidBook() {
+      let incomingData = request.resource.data;
+      return 
+        // Required fields
+        incomingData.keys().hasAll([
+          'isbn',      // ISBN_szám
+          'cim',       // Cím
+          'szerzo',    // Szerző
+          'kiado',     // Kiadó
+          'tema',      // Téma
+          'nyelv',     // Nyelv
+          'ar',        // Ár
+          'created_at',
+          'updated_at'
+        ]) &&
+        
+        // Type validations for required fields
+        incomingData.isbn is string &&
+        incomingData.cim is string &&
+        incomingData.szerzo is string &&
+        incomingData.kiado is string &&
+        incomingData.tema is string &&
+        incomingData.nyelv is string &&
+        incomingData.ar is number &&
+        incomingData.ar > 0 &&
+        incomingData.created_at is timestamp &&
+        incomingData.updated_at is timestamp;
+    }
+
+    // Books collection rules
+    match /konyv/{bookId} {
+      // Anyone can read books
+      allow read: if true;
+      
+      // Only admins can create/update/delete books
+      allow create: if isAdmin() && isValidBook();
+      allow update: if isAdmin() && isValidBook();
+      allow delete: if isAdmin();
+    }
+
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
