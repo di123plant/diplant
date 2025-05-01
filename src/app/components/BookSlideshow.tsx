@@ -83,9 +83,21 @@ export default function BookSlideshow() {
   }
 
   return (
-    <section className="relative bg-[rgba(var(--primary-color),0.03)] py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative h-[400px] rounded-lg overflow-hidden">
+    <section className="relative overflow-hidden bg-white py-8">
+      <div className="container mx-auto px-4">
+        <motion.div
+          key={currentIndex}
+          initial={{ opacity: 0 }}
+          animate={{ 
+            opacity: 1,
+            scale: isAdding ? 1.02 : 1
+          }}
+          transition={{ 
+            duration: 0.3,
+            ease: "easeInOut"
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center"
+        >
           <AnimatePresence mode="wait">
             {books[currentIndex] && (
               <motion.div
@@ -145,7 +157,7 @@ export default function BookSlideshow() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
           {books.map((_, index) => (
