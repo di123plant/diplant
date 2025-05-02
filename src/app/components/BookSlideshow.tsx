@@ -76,88 +76,87 @@ export default function BookSlideshow() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[600px]">
+      <div className="flex justify-center items-center h-[600px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
       </div>
     )
   }
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-white to-[rgba(var(--primary-color),0.05)] py-16">
-      <div className="container mx-auto px-4 min-h-[600px] relative">
-        <AnimatePresence mode="wait">
-          {books[currentIndex] && (
-            <motion.div
-              key={books[currentIndex].id}
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 gap-12 items-center p-8"
-            >
-              <div className="relative z-10 space-y-8">
-                <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight"
-                >
-                  {books[currentIndex].cim}
-                </motion.h2>
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-xl text-gray-600"
-                >
-                  {books[currentIndex].szerzo}
-                </motion.p>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-6"
-                >
-                  <p className="text-3xl font-bold text-[rgb(var(--primary-color))]">
-                    {books[currentIndex].ar.toLocaleString('hu-HU')} Ft
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    animate={isAdding ? { scale: [1, 1.2, 1] } : {}}
-                    onClick={() => handleAddToCart(books[currentIndex])}
-                    className="btn-primary text-lg px-8 py-4"
+    <section className="bg-white py-8">
+      <div className="container mx-auto px-8">
+        <div className="h-[600px] relative bg-white rounded-lg shadow-sm">
+          <AnimatePresence mode="wait">
+            {books[currentIndex] && (
+              <motion.div
+                key={books[currentIndex].id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="h-full flex flex-col md:flex-row items-center justify-center gap-12 p-8"
+              >
+                <div className="flex-1 space-y-6 max-w-xl">
+                  <motion.h2
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-4xl font-bold text-gray-900"
                   >
-                    Kosárba
-                  </motion.button>
-                </motion.div>
-              </div>
-              <div className="hidden md:block relative">
-                <div className="aspect-[3/4] bg-white rounded-lg shadow-2xl mx-auto overflow-hidden transform hover:scale-105 transition-transform duration-300">
-                  <img 
-                    src="/images/cover.jpeg"
-                    alt={`${books[currentIndex].cim} borító`}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
+                    {books[currentIndex].cim}
+                  </motion.h2>
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-2xl text-gray-600"
+                  >
+                    {books[currentIndex].szerzo}
+                  </motion.p>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="pt-4"
+                  >
+                    <p className="text-3xl font-bold text-[rgb(var(--primary-color))] mb-6">
+                      {books[currentIndex].ar.toLocaleString('hu-HU')} Ft
+                    </p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      animate={isAdding ? { scale: [1, 1.2, 1] } : {}}
+                      onClick={() => handleAddToCart(books[currentIndex])}
+                      className="btn-primary text-lg px-8 py-3"
+                    >
+                      Kosárba
+                    </motion.button>
+                  </motion.div>
                 </div>
-                <div className="absolute inset-0 bg-gradient-radial from-transparent to-white opacity-50 pointer-events-none"></div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3 z-20">
-          {books.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? 'bg-[rgb(var(--primary-color))] scale-125'
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-            />
-          ))}
+                <div className="flex-1 h-full max-w-xl flex items-center justify-center">
+                  <div className="w-[400px] h-[520px] relative">
+                    <img 
+                      src="/images/cover.jpeg"
+                      alt={`${books[currentIndex].cim} borító`}
+                      className="w-full h-full object-cover rounded-lg shadow-lg"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
+            {books.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === currentIndex
+                    ? 'bg-[rgb(var(--primary-color))]'
+                    : 'bg-gray-300 hover:bg-gray-400'
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
