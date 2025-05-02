@@ -76,15 +76,15 @@ export default function BookSlideshow() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-96">
+      <div className="flex justify-center items-center min-h-[600px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
       </div>
     )
   }
 
   return (
-    <section className="relative overflow-hidden bg-white py-8">
-      <div className="container mx-auto px-4 h-[500px] relative">
+    <section className="relative overflow-hidden bg-gradient-to-b from-white to-[rgba(var(--primary-color),0.05)] py-16">
+      <div className="container mx-auto px-4 min-h-[600px] relative">
         <AnimatePresence mode="wait">
           {books[currentIndex] && (
             <motion.div
@@ -93,14 +93,14 @@ export default function BookSlideshow() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -100 }}
               transition={{ duration: 0.5 }}
-              className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 gap-8 items-center"
+              className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 gap-12 items-center p-8"
             >
-              <div className="relative z-10">
+              <div className="relative z-10 space-y-8">
                 <motion.h2
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="text-3xl font-bold text-gray-900 mb-4"
+                  className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight"
                 >
                   {books[currentIndex].cim}
                 </motion.h2>
@@ -108,7 +108,7 @@ export default function BookSlideshow() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="text-gray-600 mb-6"
+                  className="text-xl text-gray-600"
                 >
                   {books[currentIndex].szerzo}
                 </motion.p>
@@ -116,9 +116,9 @@ export default function BookSlideshow() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <p className="text-2xl font-bold text-[rgb(var(--primary-color))]">
+                  <p className="text-3xl font-bold text-[rgb(var(--primary-color))]">
                     {books[currentIndex].ar.toLocaleString('hu-HU')} Ft
                   </p>
                   <motion.button
@@ -126,33 +126,34 @@ export default function BookSlideshow() {
                     whileTap={{ scale: 0.95 }}
                     animate={isAdding ? { scale: [1, 1.2, 1] } : {}}
                     onClick={() => handleAddToCart(books[currentIndex])}
-                    className="btn-primary"
+                    className="btn-primary text-lg px-8 py-4"
                   >
                     Kosárba
                   </motion.button>
                 </motion.div>
               </div>
-              <div className="hidden md:block">
-                <div className="aspect-[3/4] bg-gray-100 rounded-lg mx-auto">
+              <div className="hidden md:block relative">
+                <div className="aspect-[3/4] bg-white rounded-lg shadow-2xl mx-auto overflow-hidden transform hover:scale-105 transition-transform duration-300">
                   <img 
                     src="/images/cover.jpeg"
                     alt={`${books[currentIndex].cim} borító`}
                     className="w-full h-full object-cover rounded-lg"
                   />
                 </div>
+                <div className="absolute inset-0 bg-gradient-radial from-transparent to-white opacity-50 pointer-events-none"></div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3 z-20">
           {books.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 index === currentIndex
-                  ? 'bg-[rgb(var(--primary-color))]'
+                  ? 'bg-[rgb(var(--primary-color))] scale-125'
                   : 'bg-gray-300 hover:bg-gray-400'
               }`}
             />
