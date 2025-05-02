@@ -1,83 +1,76 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getFirestore, collection, getDocs } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, limit, query, orderBy } from 'firebase/firestore'
 import { useCart } from '../contexts/CartContext'
+import type { Book, CartItem } from '../types/book'
 
-interface Book {
-  id: string
-  cim: string
-  szerzo: string
-  ar: number
-  isbn: string
-  kiado: string
-  kategoria?: string
-  nyelv?: string
-  leiras?: string
-  keszlet?: number
-}
+const SLIDE_INTERVAL = 5000
+const BOOKS_TO_SHOW = 5
 
-export default function BookSlideshow() {
+export default function BookSlideshow(): JSX.Element {
   const [books, setBooks] = useState<Book[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [isAdding, setIsAdding] = useState(false)
   const { addItem } = useCart()
 
-  useEffect(() => {
-    const fetchFeaturedBooks = async () => {
-      try {
-        const db = getFirestore()
-        const booksRef = collection(db, 'konyv')
-        // Get all books
-        const snapshot = await getDocs(booksRef)
-        const allBooks = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Book[]
-        
-        // Randomly select 5 books for the slideshow
-        const shuffled = allBooks.sort(() => 0.5 - Math.random())
-        const selectedBooks = shuffled.slice(0, 5)
-        
-        if (selectedBooks.length > 0) {
-          setBooks(selectedBooks)
-        }
-      } catch (error) {
-        console.error('Error fetching books:', error)
-      } finally {
-        setIsLoading(false)
+  const fetchFeaturedBooks = useCallback(async () => {
+    try {
+      const db = getFirestore()
+      const booksRef = collection(db, 'konyv')
+      const booksQuery = query(
+        booksRef,
+        orderBy('ar', 'desc'),
+        limit(BOOKS_TO_SHOW)
+      )
+      
+      const snapshot = await getDocs(booksQuery)
+      const fetchedBooks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Book))
+      
+      if (fetchedBooks.length > 0) {
+        setBooks(fetchedBooks)
       }
+    } catch (error) {
+      console.error('Error fetching featured books:', error)
+    } finally {
+      setIsLoading(false)
     }
-
-    fetchFeaturedBooks()
   }, [])
 
   useEffect(() => {
+    void fetchFeaturedBooks()
+  }, [fetchFeaturedBooks])
+
+  useEffect(() => {
+    if (books.length === 0) return
+
     const timer = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % books.length)
-    }, 5000)
+    }, SLIDE_INTERVAL)
 
     return () => clearInterval(timer)
   }, [books.length])
 
-  const handleAddToCart = (book: Book) => {
-    setIsAdding(true)
-    addItem({
+  const handleAddToCart = useCallback((book: Book) => {
+    const cartItem: CartItem = {
       id: Number(book.id),
       title: book.cim,
       author: book.szerzo,
       price: book.ar,
-      cover: undefined
-    })
-    setTimeout(() => setIsAdding(false), 300)
-  }
+      cover: book.cover
+    }
+    addItem(cartItem)
+  }, [addItem])
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[600px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]" />
       </div>
     )
   }
@@ -122,9 +115,9 @@ export default function BookSlideshow() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      animate={isAdding ? { scale: [1, 1.2, 1] } : {}}
                       onClick={() => handleAddToCart(books[currentIndex])}
                       className="btn-primary text-lg px-8 py-3"
+                      aria-label={`Add ${books[currentIndex].cim} to cart`}
                     >
                       Kosárba
                     </motion.button>
@@ -132,11 +125,14 @@ export default function BookSlideshow() {
                 </div>
 
                 <div className="flex-1 h-full max-w-xl flex items-center justify-center">
-                  <div className="w-[400px] h-[520px] relative">
-                    <img 
-                      src="/images/cover.jpeg"
+                  <div className="relative w-[400px] h-[520px]">
+                    <Image
+                      src={books[currentIndex].cover ?? '/images/cover.jpeg'}
                       alt={`${books[currentIndex].cim} borító`}
-                      className="w-full h-full object-cover rounded-lg shadow-lg"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover rounded-lg shadow-lg"
+                      priority={currentIndex === 0}
                     />
                   </div>
                 </div>
@@ -147,13 +143,14 @@ export default function BookSlideshow() {
           <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
             {books.map((_, index) => (
               <button
-                key={index}
+                key={`slide-${index}`}
                 onClick={() => setCurrentIndex(index)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   index === currentIndex
                     ? 'bg-[rgb(var(--primary-color))]'
                     : 'bg-gray-300 hover:bg-gray-400'
                 }`}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>

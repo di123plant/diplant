@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -9,7 +9,12 @@ interface LoginModalProps {
   onClose: () => void
 }
 
-export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+interface AuthError {
+  code: string
+  message: string
+}
+
+export default function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.Element {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,7 +24,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   
   const { login, register } = useAuth()
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback(async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -28,15 +33,45 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       if (isLogin) {
         await login(email, password)
       } else {
+        if (!name.trim()) {
+          throw new Error('A név megadása kötelező')
+        }
         await register(email, password, name)
       }
       onClose()
-    } catch (error: any) {
-      setError(error.message)
+    } catch (err) {
+      const error = err as AuthError
+      setError(
+        error.code === 'auth/wrong-password' ? 'Hibás jelszó' :
+        error.code === 'auth/user-not-found' ? 'Nem található felhasználó ezzel az email címmel' :
+        error.code === 'auth/email-already-in-use' ? 'Ez az email cím már regisztrálva van' :
+        error.code === 'auth/weak-password' ? 'A jelszónak legalább 6 karakterből kell állnia' :
+        error.message || 'Hiba történt a bejelentkezés során'
+      )
     } finally {
       setLoading(false)
     }
-  }
+  }, [isLogin, email, password, name, login, register, onClose])
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
+
+  // Reset form when closing
+  useEffect(() => {
+    if (!isOpen) {
+      setEmail('')
+      setPassword('')
+      setName('')
+      setError('')
+    }
+  }, [isOpen])
 
   return (
     <AnimatePresence>
@@ -45,6 +80,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40"
             onClick={onClose}
+            role="presentation"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -52,24 +88,37 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
           >
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
+                <h2 id="modal-title" className="text-2xl font-semibold text-gray-900">
                   {isLogin ? 'Bejelentkezés' : 'Regisztráció'}
                 </h2>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                  aria-label="Bezárás"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg 
+                    className="w-6 h-6" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
               {error && (
-                <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                <div 
+                  className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm"
+                  role="alert"
+                >
                   {error}
                 </div>
               )}
@@ -83,10 +132,14 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     <input
                       type="text"
                       id="name"
+                      name="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
                       required
+                      aria-required="true"
+                      minLength={2}
+                      maxLength={50}
                     />
                   </div>
                 )}
@@ -97,10 +150,13 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <input
                     type="email"
                     id="email"
+                    name="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
                     required
+                    aria-required="true"
+                    autoComplete="email"
                   />
                 </div>
                 <div>
@@ -110,16 +166,21 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <input
                     type="password"
                     id="password"
+                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
                     required
+                    aria-required="true"
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    minLength={6}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
                   className={`w-full btn-primary ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  aria-busy={loading}
                 >
                   {loading ? 'Folyamatban...' : (isLogin ? 'Bejelentkezés' : 'Regisztráció')}
                 </button>
@@ -131,7 +192,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     setIsLogin(!isLogin)
                     setError('')
                   }}
-                  className="text-[rgb(var(--primary-color))] hover:text-[rgb(var(--secondary-color))] text-sm"
+                  className="text-[rgb(var(--primary-color))] hover:text-[rgb(var(--secondary-color))] text-sm transition-colors"
+                  type="button"
                 >
                   {isLogin ? 'Még nem regisztrált? Regisztráció' : 'Már regisztrált? Bejelentkezés'}
                 </button>

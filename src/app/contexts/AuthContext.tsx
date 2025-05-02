@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { 
   User,
   UserCredential,
@@ -8,76 +8,103 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged
-} from 'firebase/auth';
-import { auth, db } from '../config/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+} from 'firebase/auth'
+import { auth, db } from '../config/firebase'
+import { doc, setDoc } from 'firebase/firestore'
 
 interface AuthContextType {
-  currentUser: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<UserCredential>;
-  register: (email: string, password: string, name: string) => Promise<UserCredential>;
-  logout: () => Promise<void>;
+  currentUser: User | null
+  loading: boolean
+  login: (email: string, password: string) => Promise<UserCredential>
+  register: (email: string, password: string, name: string) => Promise<UserCredential>
+  logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+interface UserData {
+  name: string
+  email: string
+  createdAt: string
+  updatedAt: string
+}
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+const AuthContext = createContext<AuthContextType | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
+      setCurrentUser(user)
+      setLoading(false)
+    })
 
-    return unsubscribe;
-  }, []);
+    return () => unsubscribe()
+  }, [])
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = useCallback(async (email: string, password: string, name: string): Promise<UserCredential> => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // Save additional user data in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      
+      const userData: UserData = {
         name,
         email,
         createdAt: new Date().toISOString(),
-      });
-      return userCredential;
-    } catch (error: any) {
-      throw new Error(error.message);
-    }
-  };
+        updatedAt: new Date().toISOString()
+      }
 
-  const login = async (email: string, password: string) => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      return userCredential;
-    } catch (error: any) {
-      throw new Error(error.message);
+      // Save additional user data in Firestore
+      await setDoc(doc(db, 'users', userCredential.user.uid), userData)
+      return userCredential
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Registration failed')
     }
-  };
+  }, [])
 
-  const logout = async () => {
+  const login = useCallback(async (email: string, password: string): Promise<UserCredential> => {
     try {
-      await signOut(auth);
-    } catch (error: any) {
-      throw new Error(error.message);
+      return await signInWithEmailAndPassword(auth, email, password)
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Login failed')
     }
-  };
+  }, [])
+
+  const logout = useCallback(async (): Promise<void> => {
+    try {
+      await signOut(auth)
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Logout failed')
+    }
+  }, [])
+
+  const value = {
+    currentUser,
+    loading,
+    register,
+    login,
+    logout
+  }
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, register, login, logout }}>
+    <AuthContext.Provider value={value}>
       {!loading && children}
     </AuthContext.Provider>
-  );
+  )
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext)
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
+  return context
 }

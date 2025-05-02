@@ -1,134 +1,143 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { getFirestore, collection, getDocs } from 'firebase/firestore'
+import { useState, useEffect, useCallback } from 'react'
+import { getFirestore, collection, getDocs, query, orderBy, limit, where, Timestamp } from 'firebase/firestore'
 import BookSlideshow from './components/BookSlideshow'
-import { useCart } from './contexts/CartContext'
+import BookCard from './components/BookCard'
+import type { Book } from './types/book'
 
-interface Book {
-  id: string;
-  cim: string;
-  szerzo: string;
-  ar: number;
-  isbn: string;
-  kiado: string;
-  kategoria?: string;
-  nyelv?: string;
-  leiras?: string;
-  keszlet?: number;
-  isPromotion?: boolean;
-  created_at?: { toMillis: () => number };
+const SECTIONS = {
+  TOP: 'top',
+  PROMOTIONS: 'promotions',
+  BESTSELLERS: 'bestsellers',
+  LATEST: 'latest'
+} as const
+
+interface SectionLoadingState {
+  [SECTIONS.TOP]: boolean
+  [SECTIONS.PROMOTIONS]: boolean
+  [SECTIONS.BESTSELLERS]: boolean
+  [SECTIONS.LATEST]: boolean
 }
 
-export default function Home() {
-  const [latestBooks, setLatestBooks] = useState<Book[]>([])
-  const [topBooks, setTopBooks] = useState<Book[]>([])
-  const [promotions, setPromotions] = useState<Book[]>([])
-  const [bestSellers, setBestSellers] = useState<Book[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const { addItem } = useCart()
+export default function Home(): JSX.Element {
+  const [books, setBooks] = useState<{
+    [SECTIONS.TOP]: Book[]
+    [SECTIONS.PROMOTIONS]: Book[]
+    [SECTIONS.BESTSELLERS]: Book[]
+    [SECTIONS.LATEST]: Book[]
+  }>({
+    [SECTIONS.TOP]: [],
+    [SECTIONS.PROMOTIONS]: [],
+    [SECTIONS.BESTSELLERS]: [],
+    [SECTIONS.LATEST]: []
+  })
 
-  useEffect(() => {
-    const fetchAllBooks = async () => {
-      try {
-        const db = getFirestore()
-        const booksRef = collection(db, 'konyv')
+  const [loading, setLoading] = useState<SectionLoadingState>({
+    [SECTIONS.TOP]: true,
+    [SECTIONS.PROMOTIONS]: true,
+    [SECTIONS.BESTSELLERS]: true,
+    [SECTIONS.LATEST]: true
+  })
 
-        // Fetch all books first
-        const allBooksSnapshot = await getDocs(booksRef)
-        const allBooks = allBooksSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Book[]
+  const [error, setError] = useState<string | null>(null)
 
-        // Randomly select books for each section if no specific criteria is available
-        const shuffled = [...allBooks].sort(() => 0.5 - Math.random())
-        
-        // Set top 10 books (randomly for now, can be updated when rating system is implemented)
-        setTopBooks(shuffled.slice(0, 10))
+  const fetchBooks = useCallback(async () => {
+    const db = getFirestore()
+    const booksRef = collection(db, 'konyv')
 
-        // Set promotional books (books marked with isPromotion flag)
-        const promos = allBooks.filter(book => book.isPromotion === true)
-        setPromotions(promos.length > 0 ? promos : shuffled.slice(10, 14))
+    try {
+      // Fetch latest books
+      const latestQuery = query(
+        booksRef,
+        orderBy('created_at', 'desc'),
+        limit(4)
+      )
+      const latestSnapshot = await getDocs(latestQuery)
+      const latestBooks = latestSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Book[]
+      setBooks(prev => ({ ...prev, [SECTIONS.LATEST]: latestBooks }))
+      setLoading(prev => ({ ...prev, [SECTIONS.LATEST]: false }))
 
-        // Set bestsellers (randomly for now, can be updated when sales tracking is implemented)
-        setBestSellers(shuffled.slice(14, 19))
+      // Fetch promotional books
+      const promoQuery = query(
+        booksRef,
+        where('isPromotion', '==', true),
+        limit(4)
+      )
+      const promoSnapshot = await getDocs(promoQuery)
+      const promoBooks = promoSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Book[]
+      setBooks(prev => ({ ...prev, [SECTIONS.PROMOTIONS]: promoBooks }))
+      setLoading(prev => ({ ...prev, [SECTIONS.PROMOTIONS]: false }))
 
-        // Set latest books (using most recently added)
-        const sortedByDate = [...allBooks].sort((a, b) => {
-          return (b.created_at?.toMillis() || 0) - (a.created_at?.toMillis() || 0)
-        })
-        setLatestBooks(sortedByDate.slice(0, 4))
+      // Fetch bestsellers (assuming we have a sales field)
+      const bestsellerQuery = query(
+        booksRef,
+        orderBy('sales', 'desc'),
+        limit(5)
+      )
+      const bestsellerSnapshot = await getDocs(bestsellerQuery)
+      const bestsellerBooks = bestsellerSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Book[]
+      setBooks(prev => ({ ...prev, [SECTIONS.BESTSELLERS]: bestsellerBooks }))
+      setLoading(prev => ({ ...prev, [SECTIONS.BESTSELLERS]: false }))
 
-      } catch (error) {
-        console.error('Error fetching books:', error)
-      } finally {
-        setIsLoading(false)
-      }
+      // Fetch top rated books (assuming we have a rating field)
+      const topQuery = query(
+        booksRef,
+        orderBy('rating', 'desc'),
+        limit(5)
+      )
+      const topSnapshot = await getDocs(topQuery)
+      const topBooks = topSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Book[]
+      setBooks(prev => ({ ...prev, [SECTIONS.TOP]: topBooks }))
+      setLoading(prev => ({ ...prev, [SECTIONS.TOP]: false }))
+
+    } catch (err) {
+      console.error('Error fetching books:', err)
+      setError('Hiba történt a könyvek betöltése közben. Kérjük, próbálja újra később.')
+      setLoading({
+        [SECTIONS.TOP]: false,
+        [SECTIONS.PROMOTIONS]: false,
+        [SECTIONS.BESTSELLERS]: false,
+        [SECTIONS.LATEST]: false
+      })
     }
-
-    fetchAllBooks()
   }, [])
 
-  const BookCard = ({ book }: { book: Book }) => {
-    const [isAdding, setIsAdding] = useState(false)
-    const [quantity, setQuantity] = useState(1)
+  useEffect(() => {
+    void fetchBooks()
+  }, [fetchBooks])
 
-    const handleAddToCart = (book: Book) => {
-      setIsAdding(true)
-      for (let i = 0; i < quantity; i++) {
-        addItem({
-          id: Number(book.id),
-          title: book.cim,
-          author: book.szerzo,
-          price: book.ar,
-          cover: '/images/cover.jpeg'
-        })
-      }
-      setQuantity(1) // Reset quantity after adding
-      setTimeout(() => setIsAdding(false), 300)
-    }
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        animate={{ scale: isAdding ? 1.02 : 1 }}
-        transition={{ duration: 0.3 }}
-        viewport={{ once: true }}
-        className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-4 border border-[rgba(var(--primary-color),0.1)]"
+  const LoadingSpinner = () => (
+    <div className="flex justify-center items-center py-12">
+      <div 
+        className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"
+        role="status"
       >
-        <div className="aspect-[3/4] bg-gray-100 rounded-md mb-4">
-          <img
-            src="/images/cover.jpeg"
-            alt={`${book.cim} borító`}
-            className="w-full h-full object-cover rounded-md"
-          />
-        </div>
-        <h3 className="font-semibold text-gray-900 mb-1">{book.cim}</h3>
-        <p className="text-gray-600 text-sm mb-2">{book.szerzo}</p>
-        <div className="flex justify-between items-center">
-          <p className="text-[rgb(var(--primary-color))] font-semibold">{book.ar.toLocaleString('hu-HU')} Ft</p>
-          <div className="flex items-center space-x-2">
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-16 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
-            />
-            <button
-              onClick={() => handleAddToCart(book)}
-              className="px-3 py-1 bg-[rgb(var(--primary-color))] text-white rounded hover:bg-[rgb(var(--secondary-color))] transition-colors text-sm"
-            >
-              Kosárba
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    )
-  }
+        <span className="sr-only">Betöltés...</span>
+      </div>
+    </div>
+  )
+
+  const ErrorMessage = () => error ? (
+    <div 
+      className="bg-red-50 text-red-700 p-4 rounded-md text-center mx-auto max-w-2xl"
+      role="alert"
+    >
+      {error}
+    </div>
+  ) : null
 
   return (
     <main>
@@ -150,18 +159,18 @@ export default function Home() {
       {/* Book Slideshow */}
       <BookSlideshow />
 
+      <ErrorMessage />
+
       {/* Top 10 Books Section */}
       <section className="py-16 bg-[rgba(var(--primary-color),0.03)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="section-title text-center mb-8">Top 10 Nyelvkönyv</h2>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
-            </div>
+          {loading[SECTIONS.TOP] ? (
+            <LoadingSpinner />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              {topBooks.slice(0, 5).map((book) => (
-                <BookCard key={book.id} book={book} />
+              {books[SECTIONS.TOP].map((book, index) => (
+                <BookCard key={book.id} book={book} priority={index < 2} />
               ))}
             </div>
           )}
@@ -172,13 +181,11 @@ export default function Home() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="section-title text-center mb-8">Aktuális akcióink</h2>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
-            </div>
+          {loading[SECTIONS.PROMOTIONS] ? (
+            <LoadingSpinner />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {promotions.map((book) => (
+              {books[SECTIONS.PROMOTIONS].map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
             </div>
@@ -190,13 +197,11 @@ export default function Home() {
       <section className="py-16 bg-[rgba(var(--primary-color),0.03)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="section-title text-center mb-8">Sikerlista</h2>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
-            </div>
+          {loading[SECTIONS.BESTSELLERS] ? (
+            <LoadingSpinner />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              {bestSellers.map((book) => (
+              {books[SECTIONS.BESTSELLERS].map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
             </div>
@@ -207,14 +212,12 @@ export default function Home() {
       {/* Latest Books Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="section-title text-center">Legújabb könyveink</h2>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary-color))]"></div>
-            </div>
+          <h2 className="section-title text-center mb-8">Legújabb könyveink</h2>
+          {loading[SECTIONS.LATEST] ? (
+            <LoadingSpinner />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
-              {latestBooks.map((book) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {books[SECTIONS.LATEST].map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
             </div>
