@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
-import { getFirestore, collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore'
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, Firestore } from 'firebase/firestore'
 
 type FirebaseError = {
   message: string;
@@ -22,17 +22,17 @@ interface Book {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth()
+  const { currentUser } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
   useEffect(() => {
-    if (!user?.email?.endsWith('@diplant.hu')) {
+    if (!currentUser?.email?.endsWith('@diplant.hu')) {
       router.push('/')
     }
-  }, [user, router])
+  }, [currentUser, router])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -41,7 +41,7 @@ export default function AdminPage() {
     }
   }
 
-  const clearExistingBooks = async (db: any) => {
+  const clearExistingBooks = async (db: Firestore) => {
     try {
       const booksCollection = collection(db, 'konyv')
       const snapshot = await getDocs(booksCollection)
@@ -147,7 +147,7 @@ export default function AdminPage() {
     })
   }
 
-  const uploadBooks = async (books: Book[], db: any) => {
+  const uploadBooks = async (books: Book[], db: Firestore) => {
     try {
       const booksCollection = collection(db, 'konyv')
       const addPromises = books.map(book => 
@@ -205,7 +205,7 @@ export default function AdminPage() {
     }
   }
 
-  if (!user?.email?.endsWith('@diplant.hu')) {
+  if (!currentUser?.email?.endsWith('@diplant.hu')) {
     return null
   }
 
