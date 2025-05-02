@@ -4,10 +4,12 @@ import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
 
 export default function Cart() {
   const { state, removeItem, updateQuantity } = useCart()
-  const { user } = useAuth()
+  const { currentUser } = useAuth()
 
   useEffect(() => {
     // Force a re-render of cart items when the component mounts
@@ -32,7 +34,7 @@ export default function Cart() {
   }
 
   const handleCheckout = () => {
-    if (!user) {
+    if (!currentUser) {
       // Redirect to login with return URL
       window.location.href = `/login?returnUrl=${encodeURIComponent('/kosar')}`
       return
@@ -49,9 +51,9 @@ export default function Cart() {
         {state.items.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 mb-4">A kosár jelenleg üres.</p>
-            <a href="/kategoriak" className="btn-primary">
+            <Link href="/kategoriak" className="btn-primary">
               Vásárlás folytatása
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="space-y-8">
@@ -69,9 +71,11 @@ export default function Cart() {
                     >
                       <div className="flex items-center">
                         <div className="flex-shrink-0 w-24 h-32 bg-gray-100 rounded-md overflow-hidden">
-                          <img
-                            src="/images/cover.jpeg"
+                          <Image
+                            src={item.cover || '/images/cover.jpeg'}
                             alt={`${item.title} borító`}
+                            width={96}
+                            height={128}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -125,29 +129,29 @@ export default function Cart() {
               </div>
 
               <div className="space-y-4">
-                {!user ? (
+                {!currentUser ? (
                   <div className="bg-[rgba(var(--accent-light),0.1)] p-4 rounded-md mb-4">
                     <p className="text-gray-600 text-sm mb-4">
                       A vásárlás befejezéséhez kérjük, jelentkezzen be vagy regisztráljon.
                     </p>
-                    <a
+                    <Link
                       href={`/login?returnUrl=${encodeURIComponent('/kosar')}`}
                       className="w-full btn-primary block text-center"
                     >
                       Bejelentkezés a vásárláshoz
-                    </a>
+                    </Link>
                   </div>
                 ) : (
                   <button onClick={handleCheckout} className="w-full btn-primary">
                     Tovább a pénztárhoz
                   </button>
                 )}
-                <a
+                <Link
                   href="/kategoriak"
                   className="block text-center text-[rgb(var(--primary-color))] hover:text-[rgb(var(--secondary-color))]"
                 >
                   Vásárlás folytatása
-                </a>
+                </Link>
               </div>
             </div>
           </div>

@@ -53,6 +53,18 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.El
     }
   }, [isLogin, email, password, name, login, register, onClose])
 
+  const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value)
+  }, [])
+
+  const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value)
+  }, [])
+
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value)
+  }, [])
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -134,7 +146,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.El
                       id="name"
                       name="name"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={handleNameChange}
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
                       required
                       aria-required="true"
@@ -152,7 +164,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.El
                     id="email"
                     name="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={handleEmailChange}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
                     required
                     aria-required="true"
@@ -168,7 +180,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.El
                     id="password"
                     name="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handlePasswordChange}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--primary-color))] focus:border-[rgb(var(--primary-color))]"
                     required
                     aria-required="true"

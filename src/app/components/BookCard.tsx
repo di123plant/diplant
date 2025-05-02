@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useCart } from '../contexts/CartContext'
-import type { Book } from '../types/book'
+import type { Book, CartItem } from '../types/book'
 
 interface BookCardProps {
   book: Book
@@ -18,15 +18,14 @@ export default function BookCard({ book, priority = false }: BookCardProps): JSX
 
   const handleAddToCart = () => {
     setIsAdding(true)
-    for (let i = 0; i < quantity; i++) {
-      addItem({
-        id: Number(book.id),
-        title: book.cim,
-        author: book.szerzo,
-        price: book.ar,
-        cover: book.cover ?? '/images/cover.jpeg'
-      })
+    const cartItem: CartItem = {
+      id: Number(book.id),
+      title: book.cim,
+      author: book.szerzo,
+      price: book.ar,
+      cover: book.cover
     }
+    addItem(cartItem)
     setQuantity(1)
     setTimeout(() => setIsAdding(false), 300)
   }

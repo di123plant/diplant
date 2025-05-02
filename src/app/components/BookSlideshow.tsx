@@ -67,6 +67,10 @@ export default function BookSlideshow(): JSX.Element {
     addItem(cartItem)
   }, [addItem])
 
+  const handleDotClick = useCallback((index: number) => {
+    setCurrentIndex(index)
+  }, [])
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[600px]">
@@ -130,9 +134,10 @@ export default function BookSlideshow(): JSX.Element {
                       src={books[currentIndex].cover ?? '/images/cover.jpeg'}
                       alt={`${books[currentIndex].cim} borító`}
                       fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
                       className="object-cover rounded-lg shadow-lg"
                       priority={currentIndex === 0}
+                      quality={85}
                     />
                   </div>
                 </div>
@@ -144,7 +149,7 @@ export default function BookSlideshow(): JSX.Element {
             {books.map((_, index) => (
               <button
                 key={`slide-${index}`}
-                onClick={() => setCurrentIndex(index)}
+                onClick={() => handleDotClick(index)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   index === currentIndex
                     ? 'bg-[rgb(var(--primary-color))]'
