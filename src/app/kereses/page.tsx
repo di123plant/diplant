@@ -11,7 +11,7 @@ import type { Book } from '../types/book'
 
 const BOOKS_PER_PAGE = 12
 
-export default function SearchResults(): JSX.Element {
+export default function SearchResults(): React.ReactElement {
   const router = useRouter()
   const searchParams = useSearchParams()
   const searchQuery = searchParams.get('q') || ''
@@ -204,10 +204,8 @@ export default function SearchResults(): JSX.Element {
             role="status"
             aria-label="Nincs találat"
           >
-            <p className="text-gray-600 mb-4">
-              {searchQuery
-                ? 'Nincs találat a keresési feltételekre.'
-                : 'Kérjük, adjon meg egy keresési kifejezést.'}
+            <p className="text-gray-600">
+              Nincs találat a keresésre: &quot;{searchQuery}&quot;
             </p>
             <Link
               href="/kategoriak"

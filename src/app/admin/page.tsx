@@ -5,21 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { getFirestore, collection, writeBatch, doc } from 'firebase/firestore'
-
-type FirebaseError = {
-  message: string;
-  code: string;
-};
-
-interface Book {
-  isbn: string;
-  title: string;
-  author: string;
-  publisher: string;
-  category: string;
-  language: string;
-  price: number;
-}
+import { type FirebaseError } from 'firebase/app'
 
 interface BookData {
   id: string;
@@ -48,13 +34,6 @@ export default function AdminPage() {
     }
   }, [currentUser, router])
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setFile(event.target.files[0])
-      setMessage('') // Clear any previous messages
-    }
-  }
-
   const processExcelData = (worksheet: XLSX.WorkSheet): BookData[] => {
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
     
@@ -77,31 +56,59 @@ export default function AdminPage() {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    if (!event.target.files?.[0]) return;
 
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      alert('Please upload an Excel file (.xlsx or .xls)');
+    const uploadedFile = event.target.files[0];
+    if (!uploadedFile.name.endsWith('.xlsx') && !uploadedFile.name.endsWith('.xls')) {
+      setMessage('Kérjük, csak Excel fájlt (.xlsx vagy .xls) töltsön fel');
       return;
     }
+
+    setFile(uploadedFile);
+    setIsLoading(true);
+    setMessage('');
 
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const data = e.target?.result;
+        if (!data) throw new Error('Nem sikerült beolvasni a fájlt');
+
         const workbook = XLSX.read(data, { type: 'binary' });
+        if (!workbook.SheetNames?.length) {
+          throw new Error('A fájl nem tartalmaz munkalapot');
+        }
+
         const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const processedData = processExcelData(worksheet);
+        // Ensure we have the sheet name and the corresponding sheet exists
+        if (!sheetName || !workbook.Sheets || !(sheetName in workbook.Sheets)) {
+          throw new Error('A munkalap nem található');
+        }
+
+        const firstSheet = workbook.Sheets[sheetName];
+        if (!firstSheet) {
+          throw new Error('A munkalap üres');
+        }
+
+        const books = processExcelData(firstSheet);
         
-        await uploadBooksToFirebase(processedData);
-        alert('Books uploaded successfully!');
+        await uploadBooksToFirebase(books);
+        setMessage('Sikeres feltöltés!');
       } catch (error) {
-        console.error('Error processing file:', error);
-        alert('Error processing file. Please check the console for details.');
+        console.error('Error uploading books:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Hiba történt a feltöltés során';
+        setMessage(errorMessage);
+      } finally {
+        setIsLoading(false);
       }
     };
-    reader.readAsBinaryString(file);
+
+    reader.onerror = () => {
+      setMessage('Hiba történt a fájl olvasása közben');
+      setIsLoading(false);
+    };
+
+    reader.readAsBinaryString(uploadedFile);
   };
 
   const uploadBooksToFirebase = async (books: BookData[]): Promise<void> => {
@@ -116,13 +123,14 @@ export default function AdminPage() {
     try {
       await batch.commit();
     } catch (error) {
-      console.error('Error uploading to Firebase:', error);
-      throw error;
+      const fbError = error as FirebaseError;
+      console.error('Error uploading to Firebase:', fbError);
+      throw new Error(fbError.message);
     }
   };
 
   if (!currentUser?.email?.endsWith('@diplant.hu')) {
-    return null
+    return null;
   }
 
   return (

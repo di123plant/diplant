@@ -9,7 +9,7 @@ export interface Book {
   nyelv?: string
   leiras?: string
   keszlet?: number
-  cover?: string
+  cover?: string | null
 }
 
 export interface CartItem {
@@ -17,6 +17,6 @@ export interface CartItem {
   title: string
   author: string
   price: number
-  cover?: string
-  quantity?: number
+  cover: string
+  quantity: number
 }

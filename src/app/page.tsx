@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { getFirestore, collection, getDocs, query, orderBy, limit, where, Timestamp } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 import BookSlideshow from './components/BookSlideshow'
 import BookCard from './components/BookCard'
 import type { Book } from './types/book'
@@ -20,7 +20,7 @@ interface SectionLoadingState {
   [SECTIONS.LATEST]: boolean
 }
 
-export default function Home(): JSX.Element {
+export default function Home(): React.ReactElement {
   const [books, setBooks] = useState<{
     [SECTIONS.TOP]: Book[]
     [SECTIONS.PROMOTIONS]: Book[]

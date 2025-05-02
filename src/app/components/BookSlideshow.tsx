@@ -10,7 +10,7 @@ import type { Book, CartItem } from '../types/book'
 const SLIDE_INTERVAL = 5000
 const BOOKS_TO_SHOW = 5
 
-export default function BookSlideshow(): JSX.Element {
+export default function BookSlideshow(): React.ReactElement {
   const [books, setBooks] = useState<Book[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -56,13 +56,15 @@ export default function BookSlideshow(): JSX.Element {
     return () => clearInterval(timer)
   }, [books.length])
 
-  const handleAddToCart = useCallback((book: Book) => {
-    const cartItem: CartItem = {
+  const handleAddToCart = useCallback((book: Book | undefined) => {
+    if (!book) return;
+    
+    const cartItem: Omit<CartItem, 'quantity'> = {
       id: Number(book.id),
       title: book.cim,
       author: book.szerzo,
       price: book.ar,
-      cover: book.cover
+      cover: book.cover ?? '/images/cover.jpeg'  // Using nullish coalescing instead of OR
     }
     addItem(cartItem)
   }, [addItem])

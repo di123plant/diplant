@@ -48,7 +48,7 @@ function NavLink({ href, children, className = '' }: NavLinkProps) {
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const { currentUser, logout } = useAuth()
-  const { state, itemCount } = useCart()
+  const { itemCount } = useCart()
 
   const handleLogout = useCallback(async () => {
     try {
@@ -192,7 +192,12 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                   <svg className="h-5 w-5 mr-2 text-[rgb(var(--primary-color))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  <a href="mailto:info@diplant.hu" className="hover:text-[rgb(var(--primary-color))]">info@diplant.hu</a>
+                  <Link
+                    href="mailto:info@diplant.hu"
+                    className="hover:text-[rgb(var(--primary-color))]"
+                  >
+                    info@diplant.hu
+                  </Link>
                 </p>
                 <p className="flex items-center text-gray-600">
                   <svg className="h-5 w-5 mr-2 text-[rgb(var(--primary-color))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

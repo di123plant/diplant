@@ -29,7 +29,7 @@ interface UserData {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
+export function AuthProvider({ children }: { children: ReactNode }): React.ReactElement {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 

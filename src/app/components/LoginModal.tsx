@@ -3,18 +3,14 @@
 import { useState, FormEvent, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
+import { FirebaseError } from 'firebase/app'
 
 interface LoginModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-interface AuthError {
-  code: string
-  message: string
-}
-
-export default function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.Element {
+export default function LoginModal({ isOpen, onClose }: LoginModalProps): React.ReactElement {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -40,12 +36,14 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.El
       }
       onClose()
     } catch (err) {
-      const error = err as AuthError
+      const error = err as FirebaseError | Error
       setError(
-        error.code === 'auth/wrong-password' ? 'Hibás jelszó' :
-        error.code === 'auth/user-not-found' ? 'Nem található felhasználó ezzel az email címmel' :
-        error.code === 'auth/email-already-in-use' ? 'Ez az email cím már regisztrálva van' :
-        error.code === 'auth/weak-password' ? 'A jelszónak legalább 6 karakterből kell állnia' :
+        error instanceof FirebaseError ? 
+          error.code === 'auth/wrong-password' ? 'Hibás jelszó' :
+          error.code === 'auth/user-not-found' ? 'Nem található felhasználó ezzel az email címmel' :
+          error.code === 'auth/email-already-in-use' ? 'Ez az email cím már regisztrálva van' :
+          error.code === 'auth/weak-password' ? 'A jelszónak legalább 6 karakterből kell állnia' :
+          error.message :
         error.message || 'Hiba történt a bejelentkezés során'
       )
     } finally {

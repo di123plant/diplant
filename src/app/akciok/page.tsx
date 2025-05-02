@@ -16,6 +16,7 @@ interface Book {
   nyelv?: string
   leiras?: string
   keszlet?: number
+  cover?: string
 }
 
 export default function Promotions() {
@@ -57,7 +58,7 @@ export default function Promotions() {
           title: book.cim,
           author: book.szerzo,
           price: book.ar,
-          cover: undefined
+          cover: book.cover || '/images/cover.jpeg'
         })
       }
       setQuantity(1) // Reset quantity after adding

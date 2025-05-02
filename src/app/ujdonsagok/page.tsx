@@ -16,6 +16,7 @@ interface Book {
   nyelv?: string
   leiras?: string
   keszlet?: number
+  cover?: string
 }
 
 export default function NewArrivals() {
@@ -45,7 +46,7 @@ export default function NewArrivals() {
     fetchNewArrivals()
   }, [])
 
-  const BookCard = ({ book, index }: { book: Book; index: number }) => {
+  const BookCard = ({ book }: { book: Book }) => {
     const [isAdding, setIsAdding] = useState(false)
     const [quantity, setQuantity] = useState(1)
 
@@ -57,7 +58,7 @@ export default function NewArrivals() {
           title: book.cim,
           author: book.szerzo,
           price: book.ar,
-          cover: undefined
+          cover: book.cover || '/images/cover.jpeg'
         })
       }
       setQuantity(1) // Reset quantity after adding
@@ -137,8 +138,8 @@ export default function NewArrivals() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {newArrivals.map((book, index) => (
-              <BookCard key={book.id} book={book} index={index} />
+            {newArrivals.map((book) => (
+              <BookCard key={book.id} book={book} />
             ))}
           </div>
         )}

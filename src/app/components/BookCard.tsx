@@ -18,12 +18,12 @@ export default function BookCard({ book, priority = false }: BookCardProps): JSX
 
   const handleAddToCart = () => {
     setIsAdding(true)
-    const cartItem: CartItem = {
+    const cartItem: Omit<CartItem, 'quantity'> = {
       id: Number(book.id),
       title: book.cim,
       author: book.szerzo,
       price: book.ar,
-      cover: book.cover
+      cover: book.cover || null
     }
     addItem(cartItem)
     setQuantity(1)
