@@ -83,71 +83,69 @@ export default function BookSlideshow() {
   }
 
   return (
-    <section className="relative bg-[rgba(var(--primary-color),0.03)] py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative h-[400px] rounded-lg overflow-hidden">
-          <AnimatePresence mode="wait">
-            {books[currentIndex] && (
-              <motion.div
-                key={books[currentIndex].id}
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.5 }}
-                className="absolute inset-0 flex items-center"
-              >
-                <div className="w-full md:w-1/2 p-8">
-                  <motion.h2
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-3xl font-bold text-gray-900 mb-4"
+    <section className="relative overflow-hidden bg-white py-8">
+      <div className="container mx-auto px-4 h-[500px] relative">
+        <AnimatePresence mode="wait">
+          {books[currentIndex] && (
+            <motion.div
+              key={books[currentIndex].id}
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              transition={{ duration: 0.5 }}
+              className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 gap-8 items-center"
+            >
+              <div className="relative z-10">
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-3xl font-bold text-gray-900 mb-4"
+                >
+                  {books[currentIndex].cim}
+                </motion.h2>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-gray-600 mb-6"
+                >
+                  {books[currentIndex].szerzo}
+                </motion.p>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-4"
+                >
+                  <p className="text-2xl font-bold text-[rgb(var(--primary-color))]">
+                    {books[currentIndex].ar.toLocaleString('hu-HU')} Ft
+                  </p>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={isAdding ? { scale: [1, 1.2, 1] } : {}}
+                    onClick={() => handleAddToCart(books[currentIndex])}
+                    className="btn-primary"
                   >
-                    {books[currentIndex].cim}
-                  </motion.h2>
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-gray-600 mb-6"
-                  >
-                    {books[currentIndex].szerzo}
-                  </motion.p>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="space-y-4"
-                  >
-                    <p className="text-2xl font-bold text-[rgb(var(--primary-color))]">
-                      {books[currentIndex].ar.toLocaleString('hu-HU')} Ft
-                    </p>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      animate={isAdding ? { scale: [1, 1.2, 1] } : {}}
-                      onClick={() => handleAddToCart(books[currentIndex])}
-                      className="btn-primary"
-                    >
-                      Kosárba
-                    </motion.button>
-                  </motion.div>
+                    Kosárba
+                  </motion.button>
+                </motion.div>
+              </div>
+              <div className="hidden md:block">
+                <div className="aspect-[3/4] bg-gray-100 rounded-lg mx-auto">
+                  <img 
+                    src="/images/cover.jpeg"
+                    alt={`${books[currentIndex].cim} borító`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
                 </div>
-                <div className="hidden md:block w-1/2">
-                  <div className="aspect-[3/4] bg-gray-100 rounded-lg mx-auto">
-                    <img 
-                      src="/images/cover.jpeg"
-                      alt={`${books[currentIndex].cim} borító`}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
           {books.map((_, index) => (
             <button
               key={index}

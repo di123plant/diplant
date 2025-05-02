@@ -70,10 +70,10 @@ export default function NewArrivals() {
         animate={{ 
           opacity: 1, 
           y: 0,
-          scale: isAdding ? [1, 1.02, 1] : 1
+          scale: isAdding ? 1.02 : 1
         }}
         transition={{ 
-          duration: isAdding ? 0.3 : 0.5,
+          duration: 0.3,
           ease: "easeInOut"
         }}
         className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-6 border border-[rgba(var(--primary-color),0.1)]"

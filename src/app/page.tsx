@@ -94,9 +94,9 @@ export default function Home() {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        animate={isAdding ? { scale: [1, 1.02, 1] } : {}}
+        animate={{ scale: isAdding ? 1.02 : 1 }}
         transition={{ duration: 0.3 }}
+        viewport={{ once: true }}
         className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-4 border border-[rgba(var(--primary-color),0.1)]"
       >
         <div className="aspect-[3/4] bg-gray-100 rounded-md mb-4">

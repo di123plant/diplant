@@ -67,8 +67,15 @@ export default function Promotions() {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          scale: isAdding ? 1.02 : 1
+        }}
+        transition={{ 
+          duration: 0.3,
+          ease: "easeInOut"
+        }}
         className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-6 border border-[rgba(var(--primary-color),0.1)]"
       >
         <div className="relative">
