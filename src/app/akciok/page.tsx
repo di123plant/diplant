@@ -45,7 +45,7 @@ export default function Promotions() {
     fetchPromotions()
   }, [])
 
-  const BookCard = ({ book, index }: { book: Book; index: number }) => {
+  const BookCard = ({ book }: { book: Book }) => {
     const [isAdding, setIsAdding] = useState(false)
     const [quantity, setQuantity] = useState(1)
 
@@ -137,8 +137,8 @@ export default function Promotions() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {promotions.map((book, index) => (
-              <BookCard key={book.id} book={book} index={index} />
+            {promotions.map(book => (
+              <BookCard key={book.id} book={book} />
             ))}
           </div>
         )}

@@ -6,6 +6,11 @@ import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { getFirestore, collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore'
 
+type FirebaseError = {
+  message: string;
+  code: string;
+};
+
 interface Book {
   isbn: string;
   title: string;
@@ -43,8 +48,9 @@ export default function AdminPage() {
       const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref))
       await Promise.all(deletePromises)
       return true
-    } catch (error) {
-      console.error('Hiba a könyvek törlésekor:', error)
+    } catch (error: unknown) {
+      const firebaseError = error as FirebaseError;
+      console.error('Hiba a könyvek törlésekor:', firebaseError.message)
       throw new Error('Nem sikerült törölni a meglévő könyveket.')
     }
   }
@@ -68,12 +74,14 @@ export default function AdminPage() {
             throw new Error('A munkalapon nem található adat.')
           }
           resolve(worksheet)
-        } catch (error) {
-          reject(error instanceof Error ? error : new Error('Az Excel fájl feldolgozása sikertelen.'))
+        } catch (error: unknown) {
+          const firebaseError = error as FirebaseError;
+          reject(firebaseError.message || 'Az Excel fájl feldolgozása sikertelen.')
         }
       }
-      reader.onerror = (error) => {
-        console.error('FileReader hiba:', error)
+      reader.onerror = (error: unknown) => {
+        const firebaseError = error as FirebaseError;
+        console.error('FileReader hiba:', firebaseError.message)
         reject(new Error('A fájl beolvasása sikertelen. Kérjük, ellenőrizze, hogy a fájl nem sérült-e.'))
       }
       reader.readAsBinaryString(file)
@@ -157,8 +165,9 @@ export default function AdminPage() {
       )
       await Promise.all(addPromises)
       return true
-    } catch (error) {
-      console.error('Hiba a könyvek feltöltésekor:', error)
+    } catch (error: unknown) {
+      const firebaseError = error as FirebaseError;
+      console.error('Hiba a könyvek feltöltésekor:', firebaseError.message)
       throw new Error('Nem sikerült feltölteni a könyveket.')
     }
   }
@@ -187,9 +196,10 @@ export default function AdminPage() {
       await uploadBooks(jsonData, db)
 
       setMessage(`Sikeres művelet: ${jsonData.length} könyv feltöltve`)
-    } catch (error) {
-      console.error('Hiba:', error)
-      setMessage(error instanceof Error ? error.message : 'Ismeretlen hiba történt a feltöltés során')
+    } catch (error: unknown) {
+      const firebaseError = error as FirebaseError;
+      console.error('Hiba:', firebaseError.message)
+      setMessage(firebaseError.message || 'Ismeretlen hiba történt a feltöltés során')
     } finally {
       setIsLoading(false)
     }
