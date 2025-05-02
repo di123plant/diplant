@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, Firestore } from 'firebase/firestore'
+import { getFirestore, collection, writeBatch, doc } from 'firebase/firestore'
 
 type FirebaseError = {
   message: string;
@@ -21,6 +21,20 @@ interface Book {
   price: number;
 }
 
+interface BookData {
+  id: string;
+  title: string;
+  author: string;
+  price: number;
+  category: string;
+  description: string;
+  imageUrl: string;
+  stock: number;
+  isbn: string;
+  publisher?: string;
+  publicationYear?: number;
+}
+
 export default function AdminPage() {
   const { currentUser } = useAuth()
   const router = useRouter()
@@ -34,176 +48,78 @@ export default function AdminPage() {
     }
   }, [currentUser, router])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setFile(event.target.files[0])
       setMessage('') // Clear any previous messages
     }
   }
 
-  const clearExistingBooks = async (db: Firestore) => {
-    try {
-      const booksCollection = collection(db, 'konyv')
-      const snapshot = await getDocs(booksCollection)
-      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref))
-      await Promise.all(deletePromises)
-      return true
-    } catch (error: unknown) {
-      const firebaseError = error as FirebaseError;
-      console.error('Hiba a könyvek törlésekor:', firebaseError.message)
-      throw new Error('Nem sikerült törölni a meglévő könyveket.')
-    }
-  }
+  const processExcelData = (worksheet: XLSX.WorkSheet): BookData[] => {
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+    
+    return jsonData.map((row: any) => ({
+      id: row.ISBN?.toString() || generateId(),
+      title: row.Title || '',
+      author: row.Author || '',
+      price: Number(row.Price) || 0,
+      category: row.Category || '',
+      description: row.Description || '',
+      imageUrl: row.ImageUrl || '',
+      stock: Number(row.Stock) || 0,
+      isbn: row.ISBN?.toString() || ''
+    }));
+  };
 
-  const readExcelFile = (file: File): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        try {
-          if (!e.target?.result) {
-            throw new Error('Nem sikerült beolvasni a fájl tartalmát.')
-          }
-          const data = e.target.result
-          const workbook = XLSX.read(data, { type: 'binary' })
-          if (!workbook.SheetNames.length) {
-            throw new Error('Az Excel fájl nem tartalmaz munkalapot.')
-          }
-          const sheetName = workbook.SheetNames[0]
-          const worksheet = workbook.Sheets[sheetName]
-          if (!worksheet) {
-            throw new Error('A munkalapon nem található adat.')
-          }
-          resolve(worksheet)
-        } catch (error: unknown) {
-          const firebaseError = error as FirebaseError;
-          reject(firebaseError.message || 'Az Excel fájl feldolgozása sikertelen.')
-        }
-      }
-      reader.onerror = (error: unknown) => {
-        const firebaseError = error as FirebaseError;
-        console.error('FileReader hiba:', firebaseError.message)
-        reject(new Error('A fájl beolvasása sikertelen. Kérjük, ellenőrizze, hogy a fájl nem sérült-e.'))
-      }
-      reader.readAsBinaryString(file)
-    })
-  }
+  const generateId = (): string => {
+    return Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15);
+  };
 
-  const convertToCSV = (worksheet: XLSX.WorkSheet) => {
-    const csvOptions = { header: 1, blankrows: false }
-    return XLSX.utils.sheet_to_csv(worksheet, csvOptions)
-  }
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const parseCSVToJSON = (csv: string): Book[] => {
-    const rows = csv.split('\n').filter(row => row.trim().length > 0)
-    if (rows.length < 2) throw new Error('Az Excel fájl üres vagy nem tartalmaz adatsorokat.')
-
-    const expectedHeaders = ['ISBN_szám', 'Cím', 'Szerző', 'Kiadó', 'Téma', 'Nyelv', 'Ár']
-    const headers = rows[0].split(',').map(h => h.trim())
-
-    // Validate headers
-    for (let i = 0; i < expectedHeaders.length; i++) {
-      if (!headers[i] || headers[i].toLowerCase() !== expectedHeaders[i].toLowerCase()) {
-        throw new Error(`Hibás oszlopfejléc: ${headers[i] || 'hiányzó oszlop'}. Várt: ${expectedHeaders[i]}`)
-      }
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      alert('Please upload an Excel file (.xlsx or .xls)');
+      return;
     }
 
-    return rows.slice(1).map((row, index) => {
-      const fields = row.split(',').map(field => field.trim())
-      
-      // Ensure we have the correct number of fields
-      if (fields.length !== expectedHeaders.length) {
-        throw new Error(`Hibás adatszerkezet a(z) ${index + 2}. sorban: ${expectedHeaders.length} oszlop helyett ${fields.length} található`)
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const processedData = processExcelData(worksheet);
+        
+        await uploadBooksToFirebase(processedData);
+        alert('Books uploaded successfully!');
+      } catch (error) {
+        console.error('Error processing file:', error);
+        alert('Error processing file. Please check the console for details.');
       }
+    };
+    reader.readAsBinaryString(file);
+  };
 
-      const [isbn, title, author, publisher, category, language, price] = fields
-      
-      // Validate required fields
-      if (!isbn || !title || !author || !publisher || !category || !language || !price) {
-        throw new Error(`Hiányzó kötelező mező a(z) ${index + 2}. sorban`)
-      }
-
-      // Price validation and conversion
-      // Remove any currency symbols and whitespace
-      const cleanedPrice = price.replace(/[^0-9,.-]/g, '').replace(',', '.')
-      const numericPrice = parseFloat(cleanedPrice)
-      
-      if (isNaN(numericPrice)) {
-        throw new Error(`Érvénytelen ár a(z) ${index + 2}. sorban: "${price}". Az árnak számnak kell lennie.`)
-      }
-
-      if (numericPrice < 0) {
-        throw new Error(`Érvénytelen ár a(z) ${index + 2}. sorban: "${price}". Az ár nem lehet negatív.`)
-      }
-
-      return {
-        isbn,
-        title,
-        author,
-        publisher,
-        category,
-        language,
-        price: numericPrice
-      }
-    })
-  }
-
-  const uploadBooks = async (books: Book[], db: Firestore) => {
-    try {
-      const booksCollection = collection(db, 'konyv')
-      const addPromises = books.map(book => 
-        addDoc(booksCollection, {
-          isbn: book.isbn,
-          cim: book.title,
-          szerzo: book.author,
-          kiado: book.publisher,
-          tema: book.category,
-          nyelv: book.language,
-          ar: book.price,
-          created_at: new Date(),
-          updated_at: new Date()
-        })
-      )
-      await Promise.all(addPromises)
-      return true
-    } catch (error: unknown) {
-      const firebaseError = error as FirebaseError;
-      console.error('Hiba a könyvek feltöltésekor:', firebaseError.message)
-      throw new Error('Nem sikerült feltölteni a könyveket.')
-    }
-  }
-
-  const handleUpload = async () => {
-    if (!file) return
-    setIsLoading(true)
-    setMessage('')
+  const uploadBooksToFirebase = async (books: BookData[]): Promise<void> => {
+    const db = getFirestore();
+    const batch = writeBatch(db);
+    
+    books.forEach((book) => {
+      const bookRef = doc(collection(db, 'books'), book.id);
+      batch.set(bookRef, book);
+    });
 
     try {
-      // Step 1: Read Excel file
-      
-      const worksheet = await readExcelFile(file)
-      
-      // Step 2: Convert to CSV and parse to JSON
-      const csvData = convertToCSV(worksheet)
-      const jsonData = parseCSVToJSON(csvData)
-
-      // Step 3: Get Firestore instance
-      const db = getFirestore()
-
-      // Step 4: Clear existing books
-      await clearExistingBooks(db)
-
-      // Step 5: Upload new books
-      await uploadBooks(jsonData, db)
-
-      setMessage(`Sikeres művelet: ${jsonData.length} könyv feltöltve`)
-    } catch (error: unknown) {
-      const firebaseError = error as FirebaseError;
-      console.error('Hiba:', firebaseError.message)
-      setMessage(firebaseError.message || 'Ismeretlen hiba történt a feltöltés során')
-    } finally {
-      setIsLoading(false)
+      await batch.commit();
+    } catch (error) {
+      console.error('Error uploading to Firebase:', error);
+      throw error;
     }
-  }
+  };
 
   if (!currentUser?.email?.endsWith('@diplant.hu')) {
     return null
@@ -232,7 +148,7 @@ export default function AdminPage() {
           <input
             type="file"
             accept=".xlsx,.xls"
-            onChange={handleFileChange}
+            onChange={handleFileUpload}
             className="hidden"
             id="fileInput"
           />
@@ -244,7 +160,7 @@ export default function AdminPage() {
             {file ? file.name : 'Fájl kiválasztása'}
           </button>
           <button
-            onClick={handleUpload}
+            onClick={() => document.getElementById('fileInput')?.click()}
             className="py-2 px-4 bg-[rgb(var(--primary-color))] text-white rounded-md text-sm font-semibold hover:bg-opacity-90"
             disabled={!file || isLoading}
           >
