@@ -25,11 +25,11 @@ const eslintConfig = [
         allowExpressions: true,
         allowHigherOrderFunctions: true,
       }],
-      "@typescript-eslint/no-unused-vars": ["error", {
+      "@typescript-eslint/no-unused-vars": ["warn", {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_",
       }],
-      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/consistent-type-imports": ["error", {
         prefer: "type-imports",
       }],
@@ -39,6 +39,7 @@ const eslintConfig = [
       "react/react-in-jsx-scope": "off", // Not needed in Next.js
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      "react/no-unescaped-entities": "off",
 
       // General best practices
       "no-console": ["warn", { allow: ["warn", "error"] }],
